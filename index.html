@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+</head>
+<body>
+  <h1 id="hitboard">Score: 0</h1>
+  <audio id="guncock" src="audio/guncock.mp3"></audio>
+  <audio id="shot" src="audio/shot.mp3"></audio>
+  <audio id="splat" src="audio/splat.mp3"></audio>
+  <audio id="machine" src="audio/machine.mp3"></audio>
+  <audio id="rainSound" src="audio/rain.mp3" loop></audio>
+  <div class="upgradesMenu">
+    <h1>Upgrades Menu</h1>
+    <h2>Press "m" to exit</h2>
+    <h3>Weapon Upgrades</h3>
+    <button>Garbage Gun (Starter)<br>Range: 10 tiles<br>Hit Multiplier: 1<br>Maximum Targets: 1<br>Knockback: 2 tiles<br>Reload Time: 1 second</button>
+    <button onclick="buy1()">Standard Weapon<br>Range: 15 tiles<br>Hit multiplier: 1<br>Maximum Targets: 1<br>Knockback: 5 tiles<br>Reload Time: 925 milliseconds<br>Score Threshold: 6</button>
+     <button onclick="buy2()">Basic Shotgun<br>Range: 15 tiles<br>Hit multiplier: 1<br>Maximum Targets: 3<br>Knockback: 5 tiles<br>Reload Time: 2 seconds<br>Score Threshold: 18</button>
+    <button onclick="buy3()">Speedy Shotgun<br>Range: 15 tiles<br>Hit multiplier: 1<br>Maximum Targets: 3<br>Knockback: 5 tiles<br>Reload Time: 1.25 seconds<br>Score Threshold: 25</button>
+    <button onclick="buy4()">Simple Machine Gun<br>Range: 20 tiles<br>Hit multiplier: 9<br>Maximum Targets: 1<br>Knockback: 4. tiles<br>Reload Time: 3 seconds<br>Score Threshold: 32</button>
+  </div>
+  <div class="mapMenu">
+  <h1>Choose a Map</h1>
+    <h2>Normal Maps</h2>
+     <button onclick="map5Init()">Baseplate</button>
+    <button onclick="map2Init()">Sunny Safehouse</button>
+    <br>
+     <h2>Conveyor Maps</h2>
+     <button onclick="map6Init()">Baseplate Junction</button>
+    <button onclick="map3Init()">Steamy Junkyard</button>
+     <button onclick="map4Init()">Figure 8</button>
+    <br>
+    <h2>Rainy Maps</h2>
+    <button onclick="map7Init()">Damp Baseplate</button>
+    <button onclick="map1Init()">Rainy Wastes</button>
+</div>
+  <style>
+    *{overflow:hidden;}
+    html{background-color:black;}
+    .mapMenu h1,.mapMenu h2{
+      color: white;
+    }
+    #hitboard{color:white;display:none;}
+    .upgradesMenu{color: white;display: none;}
+  </style>
+<script type="module">
+let mu = 0
+let conveyors = 0
+let onCooldown = false
+const machine = document.getElementById("machine")
+let warning1 = false 
+const mapMenu = document.querySelectorAll(".mapMenu")
+const upgradesMenu = document.querySelectorAll(".upgradesMenu")
+let paused = false
+let range = 10
+let hitMod = 1
+let targets = 1
+let raining = false
+let knockback = 2
+let reloadTime = 1
+let targetsAttacked = 0
+ const shot = document.getElementById("shot")
+ const splat = document.getElementById("splat")
+import * as THREE from 'https://esm.sh/three@0.155.0';
+import { PointerLockControls } from 'https://esm.sh/three@0.155.0/examples/jsm/controls/PointerLockControls.js';
+const enemies=[]
+let moveDir=1
+let gameOver=false
+let hits=0
+const hitboard=document.getElementById("hitboard")
+let w=false,s=false,a=false,d=false
+const scene=new THREE.Scene()
+const camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000)
+camera.position.set(0,2,5)
+const renderer=new THREE.WebGLRenderer({antialias:true})
+renderer.setSize(window.innerWidth,window.innerHeight)
+document.body.appendChild(renderer.domElement)
+const controls=new PointerLockControls(camera,document.body)
+window.addEventListener("click",()=>controls.lock())
+const groundGeo=new THREE.BoxGeometry(100,1,100)
+const groundMat=new THREE.MeshBasicMaterial({color:0xa0522d})
+const ground=new THREE.Mesh(groundGeo,groundMat)
+ground.position.y=-0.5
+scene.add(ground)
+ const monGeo=new THREE.BoxGeometry(1,2,1)
+ const redMat = new THREE.MeshBasicMaterial({color:0xff0000})
+ const yellowMat = new THREE.MeshBasicMaterial({color: 0xffff00})
+  const monMat=new THREE.MeshBasicMaterial({color:0xff0000})
+  const monMat2=new THREE.MeshBasicMaterial({color: 0xffff00})
+  const monMat3=new THREE.MeshBasicMaterial({color: 0x00ff00})
+  const pillar = new THREE.BoxGeometry(1,3,1)
+  const greenMat = new THREE.MeshBasicMaterial({color: 0x00ff00})
+  const green1 = new THREE.Mesh(pillar,greenMat)
+  const green2 = new THREE.Mesh(pillar,greenMat)
+  const green3 = new THREE.Mesh(pillar,greenMat)
+  const green4 = new THREE.Mesh(pillar,greenMat)
+  const red1 = new THREE.Mesh(pillar,redMat)
+  const red2 = new THREE.Mesh(pillar,redMat)
+  const red3 = new THREE.Mesh(pillar,redMat)
+  const red4 = new THREE.Mesh(pillar,redMat)
+   const yellow1 = new THREE.Mesh(pillar,yellowMat)
+  const yellow2 = new THREE.Mesh(pillar,yellowMat)
+  const yellow3 = new THREE.Mesh(pillar,yellowMat)
+  const yellow4 = new THREE.Mesh(pillar,yellowMat)
+function createMonster(x,z,hp,mat,speed){
+  const armMat=new THREE.MeshBasicMaterial({color:0x0000ff})
+  const armGeo=new THREE.CylinderGeometry(0.2,0.2,1,20)
+  const body=new THREE.Mesh(monGeo,eval(mat))
+  const lArm=new THREE.Mesh(armGeo,armMat)
+  const rArm=new THREE.Mesh(armGeo,armMat)
+  body.position.y=1
+  lArm.rotation.z=Math.PI/2
+  rArm.rotation.z=Math.PI/2
+  lArm.position.set(-0.8,1,0)
+  rArm.position.set(0.8,1,0)
+  const monster=new THREE.Group()
+  monster.add(body)
+  monster.add(lArm)
+  monster.add(rArm)
+  monster.position.set(x,0.5,z)
+  scene.add(monster)
+  return {group:monster,mat:eval(mat),hittable:true,moveDir:1,hp:hp,dead:false,speed:speed}
+}
+  enemies.push(createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"monMat",0.1))
+function shoot(){
+  const frustum=new THREE.Frustum()
+  const matrix=new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse)
+  frustum.setFromProjectionMatrix(matrix)
+  for(const enemy of enemies){
+    if(enemy.hittable && !onCooldown && !enemy.hp <= 0){
+      const bounding=new THREE.Box3().setFromObject(enemy.group)
+      if(frustum.intersectsBox(bounding)&&camera.position.distanceTo(enemy.group.position)<=range){
+        hits+=hitMod
+        enemy.hp-=hitMod
+        if(hitMod === 9){
+       machine.play()
+        }
+        else{
+        shot.play()
+        }
+        enemy.hittable=false
+      if(!warning1){
+   hitboard.innerHTML="Score: "+hits
+   }
+   else{
+    hitboard.innerHTML="Score: "+hits+" ⚠️"
+   }
+        enemy.mat.color.set(0xffffff)
+        targetsAttacked++
+        let dir = new THREE.Vector3()
+        dir.subVectors(enemy.group.position,camera.position)
+        dir.y = 0
+        dir.normalize()
+        enemy.group.position.addScaledVector(dir,knockback)
+        setTimeout(function(){
+        enemy.hittable = true
+        onCooldown = false
+        if(!gameOver){
+        guncock.play()
+        }
+        if(enemy.mat === monMat){
+        enemy.mat.color.set(0xff0000)
+        }
+        else if(enemy.mat === monMat2){
+        enemy.mat.color.set(0xffff00)
+        }
+        else{
+         enemy.mat.color.set(0x00ff00)
+        }
+        },reloadTime*1000)
+        if(targetsAttacked >= targets){
+        targetsAttacked = 0
+        onCooldown = true
+        break
+        }
+      }
+    }
+  }
+}
+ const redVec = new THREE.Vector3().subVectors(camera.position,red1.position)
+ const redVec2 = new THREE.Vector3().subVectors(camera.position,red2.position)
+ const redVec3 = new THREE.Vector3().subVectors(camera.position,red3.position)
+ const redVec4 = new THREE.Vector3().subVectors(camera.position,red4.position)
+   const yellowVec = new THREE.Vector3().subVectors(camera.position,yellow1.position)
+ const yellowVec2 = new THREE.Vector3().subVectors(camera.position,yellow2.position)
+ const yellowVec3 = new THREE.Vector3().subVectors(camera.position,yellow3.position)
+ const yellowVec4 = new THREE.Vector3().subVectors(camera.position,yellow4.position)
+const gunGeo = new THREE.BoxGeometry(0.5,0.5,1.5)
+const gunMat = new THREE.MeshBasicMaterial({color: 0x000000})
+const gun = new THREE.Mesh(gunGeo,gunMat)
+const camDir = new THREE.Vector3()
+function animate(){
+  requestAnimationFrame(animate)
+  renderer.render(scene,camera)
+  if(raining){
+  const positions = rain.geometry.attributes.position
+  for(let i = 0; i < rainCount * 3; i+= 3){
+  positions.array[i+1]--
+  if(positions.array[i+1] <= 0){
+  positions.array[i+1] = 200
+  }
+  positions.needsUpdate = true
+  }
+  }
+  if(camera.position.x>0){
+  camera.position.x-=conveyors
+  }
+  if(camera.position.x<0){
+  camera.position.x+=conveyors
+  }
+   if(camera.position.z>0){
+  camera.position.z-=conveyors
+  }
+  if(camera.position.z<0){
+  camera.position.z+=conveyors
+  }
+  camera.getWorldDirection(camDir)
+camDir.multiplyScalar(1)
+camDir.y = 1
+const newPos = camera.position.clone().add(camDir)
+gun.position.copy(newPos)
+  if(enemies.length <= hits / 5){
+  if(Math.random()>0.2){
+    enemies.push(createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"monMat",0.1))
+    }
+    else if(Math.random()>0.1){
+      enemies.push(createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,18,"monMat2",0.1))
+    }
+    else{
+    enemies.push(createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"monMat3",0.25))
+    }
+  }
+  
+  enemies.forEach(enemy=>{
+  if(enemy.hp<=0 && !enemy.dead){
+  hits++
+  if(enemy.mat === "monMat2"||enemy.mat === "monMat3"){
+  hits++
+  }
+  if(!warning1){
+   hitboard.innerHTML="Score: "+hits
+   }
+   else{
+    hitboard.innerHTML="Score: "+hits+" ⚠️"
+   }
+  splat.play()
+  scene.remove(enemy.group)
+  enemy.dead = true
+  enemy.group.visible = false
+  }
+  else{
+    const g=enemy.group
+    g.lookAt(camera.position)
+    if(g.position.distanceTo(camera.position)<2&&!gameOver && !enemy.dead){
+      renderer.domElement.style.display='none'
+      hitboard.style.display='none'
+      if(enemy.mat === monMat){
+      alert("You were killed by a Basic Bot. Game Over.")
+      }
+      else if(enemy.mat === monMat2){
+      alert("You were killed by a Tank Bot. Game Over.")
+      }
+      else{
+       alert("You were killed by a Speedy Bot. Game Over.")
+      }
+      gameOver=true
+    }
+    if(camera.position.x<-50)camera.position.x=-50
+    if(camera.position.x>50)camera.position.x=50
+    if(camera.position.z<-50)camera.position.z=-50
+    if(camera.position.z>50)camera.position.z=50
+     if(enemy.group.position.x < -50 || enemy.group.position.x > 50 ||enemy.group.position.z < -50 || enemy.group.position.z > 50){
+        enemy.moveDir=1
+        }
+         let toGreen = new THREE.Vector3().subVectors(enemy.group.position, green1.position);
+         let toGreen2 = new THREE.Vector3().subVectors(enemy.group.position, green2.position);
+         let toGreen3 = new THREE.Vector3().subVectors(enemy.group.position, green3.position);
+         let toGreen4 = new THREE.Vector3().subVectors(enemy.group.position, green4.position);
+         let toRedMon = new THREE.Vector3().subVectors(enemy.group.position, red1.position)
+         let toRedMon2 = new THREE.Vector3().subVectors(enemy.group.position, red2.position)
+         let toRedMon3 = new THREE.Vector3().subVectors(enemy.group.position, red3.position)
+         let toRedMon4 = new THREE.Vector3().subVectors(enemy.group.position, red4.position)
+        if(enemy.group.position.distanceTo(green1.position)<1){
+        toGreen.y = 0
+        toGreen.normalize();
+  enemy.group.position.addScaledVector(toGreen, 1)
+        }
+        if(enemy.group.position.distanceTo(green2.position)<1){
+        toGreen2.y = 0
+        toGreen2.normalize();
+  enemy.group.position.addScaledVector(toGreen2, 1)
+        }
+        if(enemy.group.position.distanceTo(green3.position)<1){
+        toGreen3.y = 0
+        toGreen3.normalize();
+  enemy.group.position.addScaledVector(toGreen3, 1)
+        }
+        if(enemy.group.position.distanceTo(green4.position)<1){
+        toGreen4.y = 0
+        toGreen4.normalize();
+  enemy.group.position.addScaledVector(toGreen4, 1)
+        }
+        if(enemy.group.position.distanceTo(red1.position)<1){
+        toRedMon.y = 0
+        toRedMon.normalize()
+        enemy.group.position.addScaledVector(toRedMon,1)
+        }
+        if(enemy.group.position.distanceTo(red2.position)<1){
+        toRedMon2.y = 0
+        toRedMon2.normalize()
+        enemy.group.position.addScaledVector(toRedMon2,1)
+        }
+        if(enemy.group.position.distanceTo(red3.position)<1){
+        toRedMon3.y = 0
+        toRedMon3.normalize()
+        enemy.group.position.addScaledVector(toRedMon3,1)
+        }
+        if(enemy.group.position.distanceTo(red4.position)<1){
+        toRedMon4.y = 0
+        toRedMon4.normalize()
+        enemy.group.position.addScaledVector(toRedMon4,1)
+        }
+        if(!paused){
+    if(g.position.x<camera.position.x)g.position.x+=enemy.speed*enemy.moveDir
+    if(g.position.x>camera.position.x)g.position.x-=enemy.speed*enemy.moveDir
+    if(g.position.z<camera.position.z)g.position.z+=enemy.speed*enemy.moveDir
+    if(g.position.z>camera.position.z)g.position.z-=enemy.speed*enemy.moveDir
+  }
+  }
+  if(enemy.group.position.distanceTo(camera.position)<5){
+  warning1 = true
+  }
+  else{
+  warning1 = false
+  }
+   if(!warning1){
+   hitboard.innerHTML="Score: "+hits
+   }
+   else{
+    hitboard.innerHTML="Score: "+hits+" ⚠️"
+   }
+  })
+  if(w)controls.moveForward(0.4)
+  if(s)controls.moveForward(-0.4)
+  if(a)controls.moveRight(-0.4)
+  if(d)controls.moveRight(0.4 )
+  }
+window.addEventListener("keydown", e => {
+  if (
+    camera.position.distanceTo(red1.position) > 2 &&
+    camera.position.distanceTo(red2.position) > 2 &&
+    camera.position.distanceTo(red3.position) > 2 &&
+    camera.position.distanceTo(red4.position) > 2 &&
+    camera.position.distanceTo(yellow1.position) > 2 &&
+    camera.position.distanceTo(yellow2.position) > 2 &&
+    camera.position.distanceTo(yellow3.position) > 2 &&
+    camera.position.distanceTo(yellow4.position) > 2
+  ) {
+    if (e.key.toLowerCase() === "w") w = true;
+    if (e.key.toLowerCase() === "s") s = true;
+    if (e.key.toLowerCase() === "a") a = true;
+    if (e.key.toLowerCase() === "d") d = true;
+  } else {
+    if (camera.position.distanceTo(red1.position) < 2) {
+      redVec.y = 0;
+      redVec.normalize();
+      camera.position.addScaledVector(redVec, 1);
+    } else if (camera.position.distanceTo(red2.position) < 2) {
+      redVec2.y = 0;
+      redVec2.normalize();
+      camera.position.addScaledVector(redVec2, 1);
+    } else if (camera.position.distanceTo(red3.position) < 2) {
+      redVec3.y = 0;
+      redVec3.normalize();
+      camera.position.addScaledVector(redVec3, 1);
+    } else if (camera.position.distanceTo(red4.position) < 2) {
+      redVec4.y = 0;
+      redVec4.normalize();
+      camera.position.addScaledVector(redVec4, 1);
+    }
+    else if (camera.position.distanceTo(yellow1.position) < 2) {
+      yellowVec.y = 0;
+      yellowVec.normalize();
+      camera.position.addScaledVector(yellowVec, 1);
+    } else if (camera.position.distanceTo(yellow2.position) < 2) {
+      yellowVec2.y = 0;
+      yellowVec2.normalize();
+      camera.position.addScaledVector(yellowVec2, 1);
+    } else if (camera.position.distanceTo(yellow3.position) < 2) {
+      yellowVec3.y = 0;
+      yellowVec3.normalize();
+      camera.position.addScaledVector(yellowVec3, 1);
+    } else if (camera.position.distanceTo(yellow4.position) < 2) {
+      yellowVec4.y = 0;
+      yellowVec4.normalize();
+      camera.position.addScaledVector(yellowVec4, 1);
+    }
+  }
+});
+
+window.addEventListener("keyup",e=>{
+   if(e.key.toLowerCase()==="w")setTimeout(function(){w=false},mu)
+  if(e.key.toLowerCase()==="s")setTimeout(function(){s=false},mu)
+  if(e.key.toLowerCase()==="a")setTimeout(function(){a=false},mu)
+  if(e.key.toLowerCase()==="d")setTimeout(function(){d=false},mu)
+  if(e.key===" "&&camera.position.distanceTo(green1.position)>3&&e.key===" "&&camera.position.distanceTo(green2.position)&&e.key===" "&&camera.position.distanceTo(green3.position)&&e.key===" "&&camera.position.distanceTo(green4.position)){
+  shoot()
+  }
+  if(e.key.toLowerCase()==="m"){
+    if(!paused){
+    controls.unlock()
+    renderer.domElement.style.display="none"
+    hitboard.style.display="none"
+     upgradesMenu.forEach(upgrade=>{upgrade.style.display="block"})
+    paused = true
+    }
+    else{
+    paused = false
+     hitboard.style.display="block"
+     renderer.domElement.style.display="block"
+      upgradesMenu.forEach(upgrade=>{upgrade.style.display="none"})
+    }
+  }
+})
+window.buy1 = function(){
+if(hits >= 6){
+alert("Enjoy your new weapon!")
+range = 15
+hitMod = 1
+targets = 1
+knockback = 5
+reloadTime = 0.925
+}
+else{
+alert("Insufficient hits.")
+}
+}
+window.buy2 = function(){
+if(hits >= 18){
+alert("Enjoy your new weapon!")
+range = 15
+hitMod = 1
+targets = 3
+knockback = 5
+reloadTime = 2
+}
+else{
+alert("Insufficient hits.")
+}
+}
+window.buy3 = function(){
+if(hits >= 25){
+alert("Enjoy your new weapon!")
+range = 15
+hitMod = 1
+targets = 3
+knockback = 5
+reloadTime = 1.25
+}
+else{
+alert("Insufficient hits.")
+}
+}
+window.buy4 = function(){
+if(hits >= 32){
+alert("Enjoy your new weapon!")
+range = 20
+hitMod = 9
+targets = 1
+knockback = 4
+reloadTime = 3
+}
+else{
+alert("Insufficient hits.")
+}
+}
+ const rainCount = 200000
+  const rainGeo = new THREE.BufferGeometry()
+  const rainPositions = new Float32Array(rainCount * 3)
+  for(let i = 0; i < rainCount; i++){
+  const x = Math.random() * 200 - 100
+  const y = Math.random() * 200
+  const z = Math.random() * 200 - 100
+  rainPositions.set([x,y,z],i*3)
+  }
+  rainGeo.setAttribute("position",new THREE.BufferAttribute(rainPositions,3))
+  const rainMat = new THREE.PointsMaterial({color: 0xaaaaaa, size: 0.1, transparent: true})
+  const rain = new THREE.Points(rainGeo,rainMat)
+window.map1Init = function(){
+  green1.position.set(-10,1,-10)
+  green2.position.set(10,1,-10)
+  green3.position.set(10,1,10)
+  green4.position.set(-10,1,10)
+  scene.add(green1)
+  scene.add(green2)
+  scene.add(green3)
+  scene.add(green4)
+  red1.position.y = 1
+  scene.add(red1)
+  hitboard.style.display="block"
+  animate()
+  raining = true
+  mu = 150
+  mapMenu.forEach(item=>{
+  item.style.display="none"
+  scene.background=new THREE.Color(0x004499)
+  scene.add(rain)
+  document.getElementById("rainSound").play()
+  })
+}
+window.map2Init = function(){
+  green1.position.set(-1,1,5)
+  green2.position.set(1,1,5)
+  green3.position.set(0,1,6)
+  green4.position.set(0,1,4)
+  yellow1.position.set(-4,1,5)
+  yellow2.position.set(4,1,5)
+  yellow3.position.set(0,1,9)
+  yellow4.position.set(0,1,1)
+  scene.add(green1)
+  scene.add(green2)
+  scene.add(green3)
+  scene.add(green4)
+  scene.add(yellow1)
+  scene.add(yellow2)
+  scene.add(yellow3)
+  scene.add(yellow4)
+  hitboard.style.display="block"
+  animate()
+  mapMenu.forEach(item=>{
+  item.style.display="none"
+  scene.background=new THREE.Color(0x00aaff)
+  })
+}
+window.map3Init = function(){
+  green1.position.set(9,1,2)
+  green2.position.set(5,1,-9)
+  green3.position.set(-8,-1,6)
+  green4.position.set(4,1,3)
+  yellow1.position.set(-4,1,5)
+  yellow2.position.set(6,1,-4)
+  yellow3.position.set(-12,0,6)
+  yellow4.position.set(0,1,5)
+  red1.position.set(-2,1,7)
+  red2.position.set(10,1,-6)
+  red3.position.set(4,2,-3)
+  red4.position.set(15,1,4)
+  scene.add(green1)
+  scene.add(green2)
+  scene.add(green3)
+  scene.add(green4)
+  scene.add(yellow1)
+  scene.add(yellow2)
+  scene.add(yellow3)
+  scene.add(yellow4)
+  scene.add(red1)
+  scene.add(red2)
+  scene.add(red3)
+  scene.add(red4)
+  hitboard.style.display="block"
+  animate()
+  mapMenu.forEach(item=>{
+  item.style.display="none"
+  scene.background=new THREE.Color(0x8b0000)
+  conveyors = 0.08 + (hits * 0.001)
+  })
+}
+window.map4Init = function(){
+green1.position.set(0,1,2)
+yellow1.position.set(0,1,6)
+red1.position.set(0,1,10)
+green2.position.set(0,1,14)
+yellow2.position.set(0,1,18)
+red4.position.set(0,1,22)
+yellow3.position.set(0,1,-2)
+red2.position.set(0,1,-6)
+green3.position.set(0,1,-10)
+yellow4.position.set(0,1,-14)
+red3.position.set(0,1,-18)
+green4.position.set(0,1,-22)
+  scene.add(green1)
+  scene.add(green2)
+  scene.add(green3)
+  scene.add(green4)
+  scene.add(yellow1)
+  scene.add(yellow2)
+  scene.add(yellow3)
+  scene.add(yellow4)
+  scene.add(red1)
+  scene.add(red2)
+  scene.add(red3)
+  scene.add(red4)
+hitboard.style.display="block"
+animate()
+mapMenu.forEach(item=>{
+item.style.display = "none"
+scene.background = new THREE.Color()
+ scene.background=new THREE.Color(0x00aaff)
+})
+}
+window.map5Init = function(){
+  hitboard.style.display="block"
+  animate()
+  mapMenu.forEach(item=>{
+  item.style.display="none"
+  scene.background=new THREE.Color(0x00aaff)
+  })
+}
+window.map6Init = function(){
+  hitboard.style.display="block"
+  animate()
+  mapMenu.forEach(item=>{
+  item.style.display="none"
+  scene.background=new THREE.Color(0x00aaff)
+  conveyors = 0.04 + (hits * 0.001)
+  })
+}
+window.map7Init = function(){
+  hitboard.style.display="block"
+  animate()
+  raining = true
+  mu = 150
+  mapMenu.forEach(item=>{
+  item.style.display="none"
+  scene.background=new THREE.Color(0x004499)
+  scene.add(rain)
+  document.getElementById("rainSound").play()
+  })
+}
+</script>
+</body>
+</html>
