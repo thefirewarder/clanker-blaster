@@ -18,7 +18,7 @@
     <button onclick="buy1()">Standard Weapon<br>Range: 15 tiles<br>Hit multiplier: 1<br>Maximum Targets: 1<br>Knockback: 5 tiles<br>Reload Time: 925 milliseconds<br>Score Threshold: 6</button>
      <button onclick="buy2()">Basic Shotgun<br>Range: 15 tiles<br>Hit multiplier: 1<br>Maximum Targets: 3<br>Knockback: 5 tiles<br>Reload Time: 2 seconds<br>Score Threshold: 18</button>
     <button onclick="buy3()">Speedy Shotgun<br>Range: 15 tiles<br>Hit multiplier: 1<br>Maximum Targets: 3<br>Knockback: 5 tiles<br>Reload Time: 1.25 seconds<br>Score Threshold: 25</button>
-    <button onclick="buy4()">Simple Machine Gun<br>Range: 20 tiles<br>Hit multiplier: 9<br>Maximum Targets: 1<br>Knockback: 4. tiles<br>Reload Time: 3 seconds<br>Score Threshold: 32</button>
+    <button onclick="buy4()">Simple Machine Gun<br>Range: 20 tiles<br>Hit multiplier: 9<br>Maximum Targets: 1<br>Knockback: 4 tiles<br>Reload Time: 3 seconds<br>Score Threshold: 32</button>
   </div>
   <div class="mapMenu">
   <h1>Choose a Map</h1>
@@ -45,6 +45,7 @@
     .upgradesMenu{color: white;display: none;}
   </style>
 <script type="module">
+let lastLoad = 0
 let mu = 0
 let conveyors = 0
 let onCooldown = false
@@ -119,7 +120,6 @@ function createMonster(x, z, hp, modelPath, speed) {
 
     obj.scale.set(0.4,0.4,0.4); 
     obj.position.set(x, 0, z);
-    obj.rotation.y = Math.PI; // ✅ Faces correct way (your “backwards” fix)
 
     scene.add(obj);
     console.log(`✅ Loaded ${modelPath} at`, x, z);
@@ -242,7 +242,7 @@ camDir.multiplyScalar(1)
 camDir.y = 1
 const newPos = camera.position.clone().add(camDir)
 gun.position.copy(newPos)
-  if(enemies.length <= hits / 5){
+  if(enemies.length <=  hits / 5 && lastLoad !== hits){
   if(Math.random()>0.2){
     createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"enemies/model1.glb",0.1).then(monster => enemies.push(monster))
     }
@@ -252,12 +252,13 @@ gun.position.copy(newPos)
     else{
     createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"enemies/model3.glb",0.25).then(monster => enemies.push(monster))
     }
+    lastLoad = hits
   }
   
   enemies.forEach(enemy=>{
   if(enemy.hp<=0 && !enemy.dead){
   hits++
-  if(enemy.mat === "monMat2"||enemy.mat === "monMat3"){
+  if(enemy.modelPath === "enemies/model2.glb"||enemy.mat === "enemies/model2.glb"){
   hits++
   }
   if(!warning1){
@@ -273,8 +274,6 @@ gun.position.copy(newPos)
   }
   else{
     const g=enemy.group
-   /* g.lookAt(camera.position)
-    g.rotateY(Math.PI)*3/2*/
     if(g.position.distanceTo(camera.position)<3&&!gameOver && !enemy.dead){
       renderer.domElement.style.display='none'
       hitboard.style.display='none'
