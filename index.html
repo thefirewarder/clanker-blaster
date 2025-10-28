@@ -37,10 +37,10 @@
 </div>
   <style>
     *{overflow:hidden;}
-    html{background-color:black;}
     .mapMenu h1,.mapMenu h2{
       color: white;
     }
+    html{background-color: black;}
     #hitboard{color:white;display:none;}
     .upgradesMenu{color: white;display: none;}
   </style>
@@ -50,8 +50,8 @@ let conveyors = 0
 let onCooldown = false
 const machine = document.getElementById("machine")
 let warning1 = false 
-const mapMenu = document.querySelectorAll(".mapMenu")
-const upgradesMenu = document.querySelectorAll(".upgradesMenu")
+const mapMenu = document.querySelector(".mapMenu")
+const upgradesMenu = document.querySelector(".upgradesMenu")
 let paused = false
 let range = 10
 let hitMod = 1
@@ -64,6 +64,9 @@ let targetsAttacked = 0
  const splat = document.getElementById("splat")
 import * as THREE from 'https://esm.sh/three@0.155.0';
 import { PointerLockControls } from 'https://esm.sh/three@0.155.0/examples/jsm/controls/PointerLockControls.js';
+import { GLTFLoader } from 'https://esm.sh/three@0.155.0/examples/jsm/loaders/GLTFLoader.js';
+const loader = new GLTFLoader();
+
 const enemies=[]
 let moveDir=1
 let gameOver=false
@@ -103,32 +106,47 @@ scene.add(ground)
   const yellow2 = new THREE.Mesh(pillar,yellowMat)
   const yellow3 = new THREE.Mesh(pillar,yellowMat)
   const yellow4 = new THREE.Mesh(pillar,yellowMat)
-function createMonster(x,z,hp,mat,speed){
-  const armMat=new THREE.MeshBasicMaterial({color:0x0000ff})
-  const armGeo=new THREE.CylinderGeometry(0.2,0.2,1,20)
-  const body=new THREE.Mesh(monGeo,eval(mat))
-  const lArm=new THREE.Mesh(armGeo,armMat)
-  const rArm=new THREE.Mesh(armGeo,armMat)
-  body.position.y=1
-  lArm.rotation.z=Math.PI/2
-  rArm.rotation.z=Math.PI/2
-  lArm.position.set(-0.8,1,0)
-  rArm.position.set(0.8,1,0)
-  const monster=new THREE.Group()
-  monster.add(body)
-  monster.add(lArm)
-  monster.add(rArm)
-  monster.position.set(x,0.5,z)
-  scene.add(monster)
-  return {group:monster,mat:eval(mat),hittable:true,moveDir:1,hp:hp,dead:false,speed:speed}
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+const dir = new THREE.DirectionalLight(0xffffff, 1);
+dir.position.set(5, 10, 7);
+scene.add(ambient, dir);
+function createMonster(x, z, hp, modelPath, speed) {
+  return new Promise((resolve) => {
+   loader.load(
+  modelPath,
+  (gltf) => {
+    const obj = gltf.scene;
+
+    obj.scale.set(0.4,0.4,0.4); 
+    obj.position.set(x, 0, z);
+    obj.rotation.y = Math.PI; // ✅ Faces correct way (your “backwards” fix)
+
+    scene.add(obj);
+    console.log(`✅ Loaded ${modelPath} at`, x, z);
+
+    resolve({
+      group: obj,
+      hp,
+      speed,
+      hittable: true,
+      dead: false,
+      moveDir: 1,
+      modelPath: modelPath
+    });
+  },
+  (xhr) => console.log(`Loading ${modelPath}: ${(xhr.loaded / xhr.total) * 100}%`),
+  (err) => console.error("❌ Error loading", modelPath, err)
+);
+
+  });
 }
-  enemies.push(createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"monMat",0.1))
+  createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"enemies/model1.glb",0.1).then(monster => enemies.push(monster))
 function shoot(){
   const frustum=new THREE.Frustum()
   const matrix=new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse)
   frustum.setFromProjectionMatrix(matrix)
   for(const enemy of enemies){
-    if(enemy.hittable && !onCooldown && !enemy.hp <= 0){
+    if(enemy.hittable && !onCooldown && enemy.hp > 0){
       const bounding=new THREE.Box3().setFromObject(enemy.group)
       if(frustum.intersectsBox(bounding)&&camera.position.distanceTo(enemy.group.position)<=range){
         hits+=hitMod
@@ -139,7 +157,15 @@ function shoot(){
         else{
         shot.play()
         }
+         setTimeout(function(){
+           if(!gameOver){
+        document.getElementById("guncock").play()
+        }
+        },reloadTime*1000)
         enemy.hittable=false
+        setTimeout(function(){
+          enemy.hittable = true
+        },1000 * reloadTime)
       if(!warning1){
    hitboard.innerHTML="Score: "+hits
    }
@@ -154,11 +180,7 @@ function shoot(){
         dir.normalize()
         enemy.group.position.addScaledVector(dir,knockback)
         setTimeout(function(){
-        enemy.hittable = true
         onCooldown = false
-        if(!gameOver){
-        guncock.play()
-        }
         if(enemy.mat === monMat){
         enemy.mat.color.set(0xff0000)
         }
@@ -172,7 +194,7 @@ function shoot(){
         if(targetsAttacked >= targets){
         targetsAttacked = 0
         onCooldown = true
-        break
+         break
         }
       }
     }
@@ -222,13 +244,13 @@ const newPos = camera.position.clone().add(camDir)
 gun.position.copy(newPos)
   if(enemies.length <= hits / 5){
   if(Math.random()>0.2){
-    enemies.push(createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"monMat",0.1))
+    createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"enemies/model1.glb",0.1).then(monster => enemies.push(monster))
     }
     else if(Math.random()>0.1){
-      enemies.push(createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,18,"monMat2",0.1))
+      createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,18,"enemies/model2.glb",0.1).then(monster => enemies.push(monster))
     }
     else{
-    enemies.push(createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"monMat3",0.25))
+    createMonster(Math.random()<0.5?49.5:-49.5,Math.random()<0.5?49.5:-49.5,10,"enemies/model3.glb",0.25).then(monster => enemies.push(monster))
     }
   }
   
@@ -251,14 +273,15 @@ gun.position.copy(newPos)
   }
   else{
     const g=enemy.group
-    g.lookAt(camera.position)
-    if(g.position.distanceTo(camera.position)<2&&!gameOver && !enemy.dead){
+   /* g.lookAt(camera.position)
+    g.rotateY(Math.PI)*3/2*/
+    if(g.position.distanceTo(camera.position)<3&&!gameOver && !enemy.dead){
       renderer.domElement.style.display='none'
       hitboard.style.display='none'
-      if(enemy.mat === monMat){
+      if(enemy.modelPath === "enemies/model1.glb"){
       alert("You were killed by a Basic Bot. Game Over.")
       }
-      else if(enemy.mat === monMat2){
+      else if(enemy.modelPath === "enemies/model2.glb"){
       alert("You were killed by a Tank Bot. Game Over.")
       }
       else{
@@ -321,12 +344,17 @@ gun.position.copy(newPos)
         toRedMon4.normalize()
         enemy.group.position.addScaledVector(toRedMon4,1)
         }
-        if(!paused){
-    if(g.position.x<camera.position.x)g.position.x+=enemy.speed*enemy.moveDir
-    if(g.position.x>camera.position.x)g.position.x-=enemy.speed*enemy.moveDir
-    if(g.position.z<camera.position.z)g.position.z+=enemy.speed*enemy.moveDir
-    if(g.position.z>camera.position.z)g.position.z-=enemy.speed*enemy.moveDir
+       if (!paused && !enemy.dead) {
+  const toPlayer = new THREE.Vector3().subVectors(camera.position, g.position);
+  toPlayer.y = 0; 
+  const distance = toPlayer.length();
+
+  if (distance > 0.1) {
+    toPlayer.normalize();
+    g.position.addScaledVector(toPlayer, enemy.speed);
   }
+}
+
   }
   if(enemy.group.position.distanceTo(camera.position)<5){
   warning1 = true
@@ -412,14 +440,14 @@ window.addEventListener("keyup",e=>{
     controls.unlock()
     renderer.domElement.style.display="none"
     hitboard.style.display="none"
-     upgradesMenu.forEach(upgrade=>{upgrade.style.display="block"})
+     upgradesMenu.style.display = "block"
     paused = true
     }
     else{
     paused = false
      hitboard.style.display="block"
      renderer.domElement.style.display="block"
-      upgradesMenu.forEach(upgrade=>{upgrade.style.display="none"})
+      upgradesMenu.style.display="none"
     }
   }
 })
@@ -502,12 +530,10 @@ window.map1Init = function(){
   animate()
   raining = true
   mu = 150
-  mapMenu.forEach(item=>{
-  item.style.display="none"
+  mapMenu.style.display="none"
   scene.background=new THREE.Color(0x004499)
   scene.add(rain)
   document.getElementById("rainSound").play()
-  })
 }
 window.map2Init = function(){
   green1.position.set(-1,1,5)
@@ -528,10 +554,8 @@ window.map2Init = function(){
   scene.add(yellow4)
   hitboard.style.display="block"
   animate()
-  mapMenu.forEach(item=>{
-  item.style.display="none"
+  mapMenu.style.display="none"
   scene.background=new THREE.Color(0x00aaff)
-  })
 }
 window.map3Init = function(){
   green1.position.set(9,1,2)
@@ -560,11 +584,9 @@ window.map3Init = function(){
   scene.add(red4)
   hitboard.style.display="block"
   animate()
-  mapMenu.forEach(item=>{
-  item.style.display="none"
+  mapMenu.style.display="none"
   scene.background=new THREE.Color(0x8b0000)
   conveyors = 0.08 + (hits * 0.001)
-  })
 }
 window.map4Init = function(){
 green1.position.set(0,1,2)
@@ -593,40 +615,32 @@ green4.position.set(0,1,-22)
   scene.add(red4)
 hitboard.style.display="block"
 animate()
-mapMenu.forEach(item=>{
-item.style.display = "none"
+mapMenu.style.display = "none"
 scene.background = new THREE.Color()
  scene.background=new THREE.Color(0x00aaff)
-})
 }
 window.map5Init = function(){
   hitboard.style.display="block"
   animate()
-  mapMenu.forEach(item=>{
-  item.style.display="none"
+  mapMenu.style.display="none"
   scene.background=new THREE.Color(0x00aaff)
-  })
 }
 window.map6Init = function(){
   hitboard.style.display="block"
   animate()
-  mapMenu.forEach(item=>{
-  item.style.display="none"
+  mapMenu.style.display="none"
   scene.background=new THREE.Color(0x00aaff)
   conveyors = 0.04 + (hits * 0.001)
-  })
 }
 window.map7Init = function(){
   hitboard.style.display="block"
   animate()
   raining = true
   mu = 150
-  mapMenu.forEach(item=>{
-  item.style.display="none"
+  mapMenu.style.display="none"
   scene.background=new THREE.Color(0x004499)
   scene.add(rain)
   document.getElementById("rainSound").play()
-  })
 }
 </script>
 </body>
