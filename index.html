@@ -10,6 +10,7 @@
   <audio id="splat" src="audio/splat.mp3"></audio>
   <audio id="machine" src="audio/machine.mp3"></audio>
   <audio id="rainSound" src="audio/rain.mp3" loop></audio>
+  <audio id="autoSound" src="audio/autosound.mp3"></audio>
   <div class="upgradesMenu">
     <h1>Upgrades Menu</h1>
     <h2>Press "m" to exit</h2>
@@ -19,6 +20,7 @@
      <button onclick="buy2()">Basic Shotgun<br>Range: 15 tiles<br>Hit multiplier: 1<br>Maximum Targets: 3<br>Knockback: 5 tiles<br>Reload Time: 2 seconds<br>Score Threshold: 18</button>
     <button onclick="buy3()">Speedy Shotgun<br>Range: 15 tiles<br>Hit multiplier: 1<br>Maximum Targets: 3<br>Knockback: 5 tiles<br>Reload Time: 1.25 seconds<br>Score Threshold: 25</button>
     <button onclick="buy4()">Simple Machine Gun<br>Range: 20 tiles<br>Hit multiplier: 9<br>Maximum Targets: 1<br>Knockback: 4 tiles<br>Reload Time: 3 seconds<br>Score Threshold: 32</button>
+    <button onclick="buy5()">Quick Machine Gun<br>Range: 20 tiles<br>Hit multiplier: 4<br>Maximum Targets: 1<br>Knockback: 6 tiles<br>Reload Time: 1 second<br>Score Threshold: 95</button>
   </div>
   <div class="mapMenu">
   <h1>Choose a Map</h1>
@@ -72,6 +74,7 @@ const enemies=[]
 let moveDir=1
 let gameOver=false
 let hits=0
+const autoSound = document.getElementById("autoSound")
 const hitboard=document.getElementById("hitboard")
 let w=false,s=false,a=false,d=false
 const scene=new THREE.Scene()
@@ -172,7 +175,6 @@ function shoot(){
    else{
     hitboard.innerHTML="Score: "+hits+" ⚠️"
    }
-        enemy.mat.color.set(0xffffff)
         targetsAttacked++
         let dir = new THREE.Vector3()
         dir.subVectors(enemy.group.position,camera.position)
@@ -181,15 +183,6 @@ function shoot(){
         enemy.group.position.addScaledVector(dir,knockback)
         setTimeout(function(){
         onCooldown = false
-        if(enemy.mat === monMat){
-        enemy.mat.color.set(0xff0000)
-        }
-        else if(enemy.mat === monMat2){
-        enemy.mat.color.set(0xffff00)
-        }
-        else{
-         enemy.mat.color.set(0x00ff00)
-        }
         },reloadTime*1000)
         if(targetsAttacked >= targets){
         targetsAttacked = 0
@@ -200,6 +193,22 @@ function shoot(){
     }
   }
 }
+const mods = []
+setTimeout(function(){
+ if(Math.random()<0.25){
+  loader.load(
+  "modifiers/auto.glb",
+  (gltf) => {
+    const obj = gltf.scene;
+
+    obj.scale.set(0.4,0.4,0.4); 
+    obj.position.set((Math.random()*100)-50, 0, (Math.random()*100)-50);
+    obj.rotation.y = Math.PI * Math.floor(Math.random()*4)
+    scene.add(obj)
+    mods.push({position: obj.position, entity: obj})
+  })
+}
+},10000)
  const redVec = new THREE.Vector3().subVectors(camera.position,red1.position)
  const redVec2 = new THREE.Vector3().subVectors(camera.position,red2.position)
  const redVec3 = new THREE.Vector3().subVectors(camera.position,red3.position)
@@ -215,6 +224,27 @@ const camDir = new THREE.Vector3()
 function animate(){
   requestAnimationFrame(animate)
   renderer.render(scene,camera)
+  mods.forEach(mod => {
+    mod.entity.rotation.y+=0.02
+    if(camera.position.distanceTo(mod.position)<3){
+      scene.remove(mod.entity)
+      for(let i = 0; i < mods.length; i++){
+        if(mods[i].entity === mod.entity){
+          mods.splice(i,1)
+        }
+      }
+      let currentRTime = reloadTime
+      reloadTime = 0.002
+      autoSound.play()
+      scene.background = new THREE.Color(0xff0000)
+      setTimeout(function(){
+        reloadTime = currentRTime
+        autoSound.pause()
+        autoSound.currentTime = 0
+         scene.background = new THREE.Color(0x00aaff)
+      },3000)
+    }
+  })
   if(raining){
   const positions = rain.geometry.attributes.position
   for(let i = 0; i < rainCount * 3; i+= 3){
@@ -502,6 +532,19 @@ else{
 alert("Insufficient hits.")
 }
 }
+window.buy5 = function(){
+if(hits >= 95){
+alert("Enjoy your new weapon!")
+range = 20
+hitMod = 4
+targets = 1
+knockback = 6
+reloadTime = 1
+}
+else{
+alert("Insufficient hits.")
+}
+}
  const rainCount = 200000
   const rainGeo = new THREE.BufferGeometry()
   const rainPositions = new Float32Array(rainCount * 3)
@@ -617,6 +660,7 @@ animate()
 mapMenu.style.display = "none"
 scene.background = new THREE.Color()
  scene.background=new THREE.Color(0x00aaff)
+ conveyors = 0.04 + (hits * 0.001)
 }
 window.map5Init = function(){
   hitboard.style.display="block"
