@@ -208,9 +208,8 @@ setTimeout(function(){
     objLoader.load(
   "grass.obj",
   (object) => {
-    const obj = object.scene
-    obj.scale.set(50,1,50);
-    scene.add(obj)
+    object.scale.set(50,1,50);
+    scene.add(object)
   })
  const redVec = new THREE.Vector3().subVectors(camera.position,red1.position)
  const redVec2 = new THREE.Vector3().subVectors(camera.position,red2.position)
