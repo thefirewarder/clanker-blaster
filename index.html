@@ -69,7 +69,8 @@ import * as THREE from 'https://esm.sh/three@0.155.0';
 import { PointerLockControls } from 'https://esm.sh/three@0.155.0/examples/jsm/controls/PointerLockControls.js';
 import { GLTFLoader } from 'https://esm.sh/three@0.155.0/examples/jsm/loaders/GLTFLoader.js';
 const loader = new GLTFLoader();
-
+import { OBJLoader } from 'https://esm.sh/three@0.155.0/examples/jsm/loaders/OBJLoader.js';
+const objLoader = new OBJLoader();
 const enemies=[]
 let moveDir=1
 let gameOver=false
@@ -204,11 +205,10 @@ setTimeout(function(){
   })
 }
 },10000)
-    loader.load(
+    objLoader.load(
   "grass.obj",
-  (gltf) => {
-    const obj = gltf.scene;
-
+  (object) => {
+    const obj = object.scene
     obj.scale.set(50,1,50);
     scene.add(obj)
   })
