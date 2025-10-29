@@ -209,6 +209,14 @@ setTimeout(function(){
   })
 }
 },10000)
+    loader.load(
+  "grass.obj",
+  (gltf) => {
+    const obj = gltf.scene;
+
+    obj.scale.set(50,1,50);
+    scene.add(obj)
+  })
  const redVec = new THREE.Vector3().subVectors(camera.position,red1.position)
  const redVec2 = new THREE.Vector3().subVectors(camera.position,red2.position)
  const redVec3 = new THREE.Vector3().subVectors(camera.position,red3.position)
