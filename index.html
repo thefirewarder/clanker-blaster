@@ -70,6 +70,7 @@ import { PointerLockControls } from 'https://esm.sh/three@0.155.0/examples/jsm/c
 import { GLTFLoader } from 'https://esm.sh/three@0.155.0/examples/jsm/loaders/GLTFLoader.js';
 const loader = new GLTFLoader();
 import { OBJLoader } from 'https://esm.sh/three@0.155.0/examples/jsm/loaders/OBJLoader.js';
+  import { MTLLoader } from 'https://esm.sh/three@0.155.0/examples/jsm/loaders/MTLLoader.js';
 const objLoader = new OBJLoader();
 const enemies=[]
 let moveDir=1
@@ -205,13 +206,32 @@ setTimeout(function(){
   })
 }
 },10000)
+const mtlLoader = new MTLLoader();
+mtlLoader.load(
+  'grass.mtl',
+  (materials) => {
+    materials.preload();
+
+    const objLoader = new OBJLoader();
+    objLoader.setMaterials(materials);
+
     objLoader.load(
-  "grass.obj",
-  (object) => {
-    object.scale.set(50,1,50);
-    object.position.y = -0.5
-    scene.add(object)
-  })
+      'grass.obj',
+      (object) => {
+        object.scale.set(50, 1, 50);  
+        object.position.set(0, -1, 0); 
+        object.receiveShadow = true;
+        scene.add(object);
+        console.log('✅ Loaded grass.obj with grass.mtl as ground');
+      },
+      (xhr) => console.log(`Loading grass.obj: ${(xhr.loaded / xhr.total) * 100}%`),
+      (error) => console.error('❌ Error loading grass.obj', error)
+    );
+  },
+  (xhr) => console.log(`Loading grass.mtl: ${(xhr.loaded / xhr.total) * 100}%`),
+  (error) => console.error('❌ Error loading grass.mtl', error)
+);
+
  const redVec = new THREE.Vector3().subVectors(camera.position,red1.position)
  const redVec2 = new THREE.Vector3().subVectors(camera.position,red2.position)
  const redVec3 = new THREE.Vector3().subVectors(camera.position,red3.position)
